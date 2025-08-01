@@ -1,0 +1,52 @@
+{
+  "name": "capitalcue",
+  "version": "1.0.0",
+  "description": "CapitalCue - Financial Analysis Platform for VCs and Stock Investors",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "mcp-servers/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/document-processor\"",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "type-check": "npm run type-check --workspaces",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules mcp-servers/*/node_modules",
+    "mcp:start": "concurrently \"npm start --workspace=mcp-servers/document-parser\" \"npm start --workspace=mcp-servers/constraint-engine\" \"npm start --workspace=mcp-servers/alert-manager\" \"npm start --workspace=mcp-servers/ai-analyzer\"",
+    "db:migrate": "npm run migrate --workspace=apps/api",
+    "db:seed": "npm run seed --workspace=apps/api",
+    "deploy:staging": "npm run deploy:staging --workspaces",
+    "deploy:prod": "npm run deploy:prod --workspaces",
+    "test:setup": "node scripts/setup-test-environment.js",
+    "test:db:up": "docker-compose -f docker-compose.test.yml up -d",
+    "test:db:down": "docker-compose -f docker-compose.test.yml down",
+    "test:seed": "cd apps/api && npm run db:seed:test",
+    "test:integration": "node tests/integration/integration-test-suite.js",
+    "test:e2e": "npm run test:db:up && sleep 10 && npm run test:seed && npm run test:integration",
+    "test:cleanup": "npm run test:db:down",
+    "load-test": "node scripts/load-test.js",
+    "performance-test": "npm run load-test",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "k8s:deploy": "kubectl apply -f k8s/",
+    "k8s:delete": "kubectl delete -f k8s/",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "axios": "^1.11.0",
+    "concurrently": "^8.2.2",
+    "form-data": "^4.0.4",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

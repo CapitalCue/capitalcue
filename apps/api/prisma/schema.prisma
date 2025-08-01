@@ -1,0 +1,440 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  userType  UserType @default(INVESTOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Security fields
+  mfaEnabled    Boolean @default(false)
+  mfaSecret     String?
+  mfaTempSecret String?
+  lastLoginAt   DateTime?
+  loginAttempts Int      @default(0)
+  lockedUntil   DateTime?
+  
+  // Privacy and compliance
+  privacyPolicyAccepted Boolean   @default(false)
+  privacyPolicyVersion  String?
+  termsAccepted         Boolean   @default(false)
+  termsVersion          String?
+  dataRetentionConsent  Boolean   @default(true)
+  marketingConsent      Boolean   @default(false)
+
+  // Relations
+  companies        Company[]
+  documents        Document[]
+  constraints      Constraint[]
+  analyses         Analysis[]
+  alerts           Alert[]
+  auditLogs        AuditLog[]
+  sessions         Session[]
+  apiKeys          ApiKey[]
+  dataExportReq    DataExportRequest[]
+  dataDeletionReq  DataDeletionRequest[]
+
+  @@map("users")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  ticker      String?  @unique
+  sector      String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@map("companies")
+}
+
+model Document {
+  id           String         @id @default(cuid())
+  fileName     String
+  fileType     FileType
+  fileSize     Int
+  filePath     String
+  documentType DocumentType
+  uploadedAt   DateTime       @default(now())
+  processedAt  DateTime?
+  status       DocumentStatus @default(UPLOADED)
+  companyId    String
+  userId       String
+
+  // Relations
+  company  Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses Analysis[]
+
+  @@map("documents")
+}
+
+model FinancialMetric {
+  id         String  @id @default(cuid())
+  name       String
+  value      Float
+  unit       String
+  period     String
+  source     String
+  confidence Float
+  analysisId String
+
+  // Relations
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@map("financial_metrics")
+}
+
+model Constraint {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  metric      String
+  operator    ConstraintOperator
+  value       Float
+  severity    AlertSeverity
+  message     String
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  userId      String
+
+  // Relations
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts               Alert[]
+  analysisConstraints  AnalysisConstraint[]
+
+  @@map("constraints")
+}
+
+model ConstraintTemplate {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  userType    UserType
+  constraints Json      // Store constraint definitions as JSON
+  isPublic    Boolean   @default(false)
+  createdBy   String
+  createdAt   DateTime  @default(now())
+
+  @@map("constraint_templates")
+}
+
+model Analysis {
+  id            String          @id @default(cuid())
+  status        AnalysisStatus  @default(RUNNING)
+  startedAt     DateTime        @default(now())
+  completedAt   DateTime?
+  errorMessage  String?
+  aiInsights    String?         // JSON string containing AI-generated insights
+  documentId    String
+  userId        String
+
+  // Relations
+  document            Document              @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  financialMetrics    FinancialMetric[]
+  alerts              Alert[]
+  analysisConstraints AnalysisConstraint[]
+
+  @@map("analyses")
+}
+
+model AnalysisConstraint {
+  id           String @id @default(cuid())
+  analysisId   String
+  constraintId String
+
+  // Relations
+  analysis   Analysis   @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  constraint Constraint @relation(fields: [constraintId], references: [id], onDelete: Cascade)
+
+  @@unique([analysisId, constraintId])
+  @@map("analysis_constraints")
+}
+
+model Alert {
+  id              String        @id @default(cuid())
+  severity        AlertSeverity
+  message         String
+  actualValue     Float
+  expectedValue   Float
+  isAcknowledged  Boolean       @default(false)
+  acknowledgedAt  DateTime?
+  acknowledgedBy  String?
+  createdAt       DateTime      @default(now())
+  analysisId      String
+  constraintId    String
+  userId          String
+
+  // Relations
+  analysis   Analysis   @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  constraint Constraint @relation(fields: [constraintId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("alerts")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  resource  String
+  resourceId String
+  oldValues Json?
+  newValues Json?
+  createdAt DateTime @default(now())
+  userId    String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+// Enums
+enum UserType {
+  VC
+  INVESTOR
+}
+
+enum FileType {
+  PDF
+  EXCEL
+  CSV
+}
+
+enum DocumentType {
+  QUARTERLY_REPORT
+  ANNUAL_REPORT
+  FINANCIAL_STATEMENT
+  OTHER
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum ConstraintOperator {
+  LESS_THAN
+  GREATER_THAN
+  EQUAL
+  LESS_THAN_OR_EQUAL
+  GREATER_THAN_OR_EQUAL
+  NOT_EQUAL
+}
+
+enum AlertSeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+enum AnalysisStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// Security and compliance models
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  token        String    @unique
+  ipAddress    String
+  userAgent    String
+  mfaVerified  Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  lastActivity DateTime  @default(now())
+  expires      DateTime
+  createdAt    DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model BlacklistedToken {
+  id      String   @id @default(cuid())
+  token   String   @unique
+  expires DateTime
+  reason  String?
+  
+  createdAt DateTime @default(now())
+
+  @@map("blacklisted_tokens")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  keyHash     String    @unique
+  permissions String[]  // JSON array of permissions
+  isActive    Boolean   @default(true)
+  lastUsed    DateTime?
+  expires     DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model SecurityEvent {
+  id          String           @id @default(cuid())
+  eventType   SecurityEventType
+  severity    SecuritySeverity
+  userId      String?
+  ipAddress   String?
+  userAgent   String?
+  resource    String?
+  description String
+  metadata    String?          // JSON
+  resolved    Boolean          @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@map("security_events")
+}
+
+model DataExportRequest {
+  id          String                @id @default(cuid())
+  userId      String
+  requestType DataExportType
+  status      DataRequestStatus     @default(PENDING)
+  requestedAt DateTime              @default(now())
+  completedAt DateTime?
+  expiresAt   DateTime?
+  downloadUrl String?
+  metadata    String?               // JSON
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("data_export_requests")
+}
+
+model DataDeletionRequest {
+  id            String            @id @default(cuid())
+  userId        String
+  requestType   DataDeletionType
+  status        DataRequestStatus @default(PENDING)
+  requestedAt   DateTime          @default(now())
+  scheduledFor  DateTime?
+  completedAt   DateTime?
+  metadata      String?           // JSON
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("data_deletion_requests")
+}
+
+model ComplianceLog {
+  id          String           @id @default(cuid())
+  eventType   ComplianceEventType
+  userId      String?
+  resource    String?
+  resourceId  String?
+  action      String?
+  details     String?          // JSON
+  complianceFramework String[] // GDPR, CCPA, etc.
+  timestamp   DateTime         @default(now())
+
+  @@map("compliance_logs")
+}
+
+model EncryptedData {
+  id         String   @id @default(cuid())
+  entityType String   // table name
+  entityId   String   // record id
+  fieldName  String   // field name
+  encrypted  String   // encrypted value
+  iv         String   // initialization vector
+  tag        String   // authentication tag
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([entityType, entityId, fieldName])
+  @@map("encrypted_data")
+}
+
+// Additional enums for security
+enum SecurityEventType {
+  AUTHENTICATION_FAILURE
+  AUTHORIZATION_FAILURE
+  SUSPICIOUS_ACTIVITY
+  DATA_BREACH_ATTEMPT
+  RATE_LIMIT_EXCEEDED
+  MALICIOUS_REQUEST
+  PRIVILEGE_ESCALATION
+  ACCOUNT_TAKEOVER
+  DATA_EXFILTRATION
+}
+
+enum SecuritySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DataExportType {
+  PERSONAL_DATA
+  ACTIVITY_LOG
+  DOCUMENTS
+  ANALYSIS_RESULTS
+  FULL_EXPORT
+}
+
+enum DataDeletionType {
+  ACCOUNT_DELETION
+  DATA_PURGE
+  DOCUMENT_DELETION
+  ANALYSIS_DELETION
+  PARTIAL_DELETION
+}
+
+enum DataRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum ComplianceEventType {
+  CONSENT_GIVEN
+  CONSENT_WITHDRAWN
+  DATA_ACCESSED
+  DATA_EXPORTED
+  DATA_DELETED
+  PRIVACY_POLICY_UPDATED
+  TERMS_UPDATED
+  RETENTION_POLICY_APPLIED
+  BREACH_NOTIFICATION
+}

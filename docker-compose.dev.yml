@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # Database for development
+  postgres-dev:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: financial_analyzer_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - financial-analyzer-dev
+
+  # Redis for development
+  redis-dev:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - financial-analyzer-dev
+
+  # Document Parser (development)
+  document-parser-dev:
+    build:
+      context: ./mcp-servers/document-parser
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 8001
+      LOG_LEVEL: debug
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./mcp-servers/document-parser:/app
+      - /app/node_modules
+    command: python main.py
+    networks:
+      - financial-analyzer-dev
+
+  # Constraint Engine (development)
+  constraint-engine-dev:
+    build:
+      context: ./mcp-servers/constraint-engine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 8002
+      LOG_LEVEL: debug
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./mcp-servers/constraint-engine/src:/app/src
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - financial-analyzer-dev
+
+  # Alert Manager (development)
+  alert-manager-dev:
+    build:
+      context: ./mcp-servers/alert-manager  
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 8003
+      LOG_LEVEL: debug
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./mcp-servers/alert-manager/src:/app/src
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - financial-analyzer-dev
+
+  # AI Analyzer (development)
+  ai-analyzer-dev:
+    build:
+      context: ./mcp-servers/ai-analyzer
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 8004
+      LOG_LEVEL: debug
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-your-anthropic-api-key-here}
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./mcp-servers/ai-analyzer/src:/app/src
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - financial-analyzer-dev
+
+networks:
+  financial-analyzer-dev:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local

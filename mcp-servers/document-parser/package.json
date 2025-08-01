@@ -1,0 +1,13 @@
+{
+  "name": "@financial-analyzer/document-parser-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for parsing financial documents",
+  "scripts": {
+    "start": "python main.py",
+    "dev": "python main.py --reload",
+    "install": "pip install -r requirements.txt",
+    "test": "python -m pytest tests/"
+  },
+  "keywords": ["mcp", "document-parser", "financial-analysis"],
+  "author": "Financial Analyzer Team"
+}

@@ -1,0 +1,1042 @@
+openapi: 3.0.3
+info:
+  title: Financial Constraint Analysis Platform API
+  description: Enterprise-grade financial analysis platform with AI-powered insights, constraint management, and comprehensive compliance features.
+  version: 1.0.0
+  contact:
+    name: Financial Analyzer Team
+    email: support@financial-analyzer.com
+  license:
+    name: Proprietary
+    url: https://financial-analyzer.com/license
+
+servers:
+  - url: http://localhost:3001/api
+    description: Development server
+  - url: https://api.financial-analyzer.com/api
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Health Check
+  /health:
+    get:
+      summary: Health check endpoint
+      tags: [Health]
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                  version:
+                    type: string
+
+  # Authentication
+  /auth/register:
+    post:
+      summary: Register new user
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name, userType]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                name:
+                  type: string
+                userType:
+                  type: string
+                  enum: [VC, INVESTOR]
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/login:
+    post:
+      summary: User login
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                mfaToken:
+                  type: string
+                  description: Required if MFA is enabled
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: MFA token required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  mfaRequired:
+                    type: boolean
+
+  /auth/logout:
+    post:
+      summary: User logout
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # User Management
+  /user/profile:
+    get:
+      summary: Get user profile
+      tags: [User Management]
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      summary: Update user profile
+      tags: [User Management]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Document Management
+  /documents:
+    get:
+      summary: List user documents
+      tags: [Documents]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: companyId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Documents retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  documents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Document'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Upload new document
+      tags: [Documents]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, companyId, documentType]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                companyId:
+                  type: string
+                documentType:
+                  type: string
+                  enum: [QUARTERLY_REPORT, ANNUAL_REPORT, FINANCIAL_STATEMENT, OTHER]
+      responses:
+        '201':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  document:
+                    $ref: '#/components/schemas/Document'
+
+  /documents/{documentId}:
+    get:
+      summary: Get document details
+      tags: [Documents]
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete document
+      tags: [Documents]
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Constraint Management
+  /constraints:
+    get:
+      summary: List user constraints
+      tags: [Constraints]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Constraints retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  constraints:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Constraint'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Create new constraint
+      tags: [Constraints]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, metric, operator, value, severity, message]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                metric:
+                  type: string
+                operator:
+                  type: string
+                  enum: [LESS_THAN, GREATER_THAN, EQUAL, LESS_THAN_OR_EQUAL, GREATER_THAN_OR_EQUAL, NOT_EQUAL]
+                value:
+                  type: number
+                severity:
+                  type: string
+                  enum: [CRITICAL, WARNING, INFO]
+                message:
+                  type: string
+      responses:
+        '201':
+          description: Constraint created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Constraint'
+
+  # Analysis
+  /analysis:
+    get:
+      summary: List user analyses
+      tags: [Analysis]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [RUNNING, COMPLETED, FAILED]
+      responses:
+        '200':
+          description: Analyses retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  analyses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Analysis'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Start new analysis
+      tags: [Analysis]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [documentId, constraintIds]
+              properties:
+                documentId:
+                  type: string
+                constraintIds:
+                  type: array
+                  items:
+                    type: string
+                aiAnalysis:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Analysis started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Analysis'
+
+  /analysis/{analysisId}:
+    get:
+      summary: Get analysis details
+      tags: [Analysis]
+      parameters:
+        - name: analysisId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Analysis details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisDetails'
+
+  /analysis/{analysisId}/ai-insights:
+    get:
+      summary: Get AI insights for analysis
+      tags: [Analysis, AI]
+      parameters:
+        - name: analysisId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: AI insights retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIInsights'
+
+  # Privacy & GDPR
+  /privacy/export-request:
+    post:
+      summary: Request data export (GDPR Article 15)
+      tags: [Privacy & GDPR]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requestType]
+              properties:
+                requestType:
+                  type: string
+                  enum: [PERSONAL_DATA, ACTIVITY_LOG, DOCUMENTS, ANALYSIS_RESULTS, FULL_EXPORT]
+                options:
+                  type: object
+                  properties:
+                    format:
+                      type: string
+                      enum: [JSON, CSV, XML]
+                      default: JSON
+                    anonymize:
+                      type: boolean
+                      default: false
+      responses:
+        '202':
+          description: Export request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  requestId:
+                    type: string
+                  message:
+                    type: string
+                  estimatedCompletion:
+                    type: string
+
+  /privacy/deletion-request:
+    post:
+      summary: Request data deletion (GDPR Article 17)
+      tags: [Privacy & GDPR]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deletionType]
+              properties:
+                deletionType:
+                  type: string
+                  enum: [ACCOUNT_DELETION, DATA_PURGE, DOCUMENT_DELETION, ANALYSIS_DELETION, PARTIAL_DELETION]
+                options:
+                  type: object
+                  properties:
+                    retainAuditLogs:
+                      type: boolean
+                      default: true
+                    reason:
+                      type: string
+      responses:
+        '202':
+          description: Deletion request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  requestId:
+                    type: string
+                  message:
+                    type: string
+                  warningPeriod:
+                    type: string
+
+  /privacy/consent:
+    post:
+      summary: Record user consent
+      tags: [Privacy & GDPR]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [consentType, granted]
+              properties:
+                consentType:
+                  type: string
+                  enum: [privacy_policy, terms_of_service, marketing, data_retention]
+                version:
+                  type: string
+                  default: "1.0"
+                granted:
+                  type: boolean
+      responses:
+        '200':
+          description: Consent recorded successfully
+
+  # Security
+  /security/dashboard:
+    get:
+      summary: Get security dashboard (Admin only)
+      tags: [Security]
+      parameters:
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [24h, 7d, 30d]
+            default: 24h
+      responses:
+        '200':
+          description: Security dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityDashboard'
+      security:
+        - BearerAuth: []
+
+  /security/events:
+    get:
+      summary: Get security events (Admin only)
+      tags: [Security]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        - name: resolved
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Security events retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SecurityEvent'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  # Compliance
+  /compliance/dashboard:
+    get:
+      summary: Get compliance dashboard (Admin only)
+      tags: [Compliance]
+      responses:
+        '200':
+          description: Compliance dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceDashboard'
+
+  /compliance/reports/gdpr:
+    post:
+      summary: Generate GDPR compliance report (Admin only)
+      tags: [Compliance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [periodStart, periodEnd]
+              properties:
+                periodStart:
+                  type: string
+                  format: date
+                periodEnd:
+                  type: string
+                  format: date
+      responses:
+        '202':
+          description: Report generation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  reportId:
+                    type: string
+                  message:
+                    type: string
+                  estimatedCompletion:
+                    type: string
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        userType:
+          type: string
+          enum: [VC, INVESTOR]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+        expiresIn:
+          type: string
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+        fileName:
+          type: string
+        fileType:
+          type: string
+          enum: [PDF, EXCEL, CSV]
+        fileSize:
+          type: integer
+        documentType:
+          type: string
+          enum: [QUARTERLY_REPORT, ANNUAL_REPORT, FINANCIAL_STATEMENT, OTHER]
+        uploadedAt:
+          type: string
+          format: date-time
+        processedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [UPLOADED, PROCESSING, PROCESSED, FAILED]
+        companyId:
+          type: string
+
+    Constraint:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        metric:
+          type: string
+        operator:
+          type: string
+          enum: [LESS_THAN, GREATER_THAN, EQUAL, LESS_THAN_OR_EQUAL, GREATER_THAN_OR_EQUAL, NOT_EQUAL]
+        value:
+          type: number
+        severity:
+          type: string
+          enum: [CRITICAL, WARNING, INFO]
+        message:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Analysis:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [RUNNING, COMPLETED, FAILED]
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        errorMessage:
+          type: string
+        documentId:
+          type: string
+
+    AnalysisDetails:
+      allOf:
+        - $ref: '#/components/schemas/Analysis'
+        - type: object
+          properties:
+            financialMetrics:
+              type: array
+              items:
+                $ref: '#/components/schemas/FinancialMetric'
+            alerts:
+              type: array
+              items:
+                $ref: '#/components/schemas/Alert'
+            aiInsights:
+              type: string
+
+    FinancialMetric:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+        period:
+          type: string
+        source:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+        severity:
+          type: string
+          enum: [CRITICAL, WARNING, INFO]
+        message:
+          type: string
+        actualValue:
+          type: number
+        expectedValue:
+          type: number
+        isAcknowledged:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    AIInsights:
+      type: object
+      properties:
+        summary:
+          type: string
+        keyFindings:
+          type: array
+          items:
+            type: string
+        riskAssessment:
+          type: object
+          properties:
+            riskLevel:
+              type: string
+              enum: [LOW, MEDIUM, HIGH, CRITICAL]
+            riskFactors:
+              type: array
+              items:
+                type: string
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              recommendation:
+                type: string
+              priority:
+                type: string
+                enum: [LOW, MEDIUM, HIGH]
+
+    SecurityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        userId:
+          type: string
+        ipAddress:
+          type: string
+        description:
+          type: string
+        resolved:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    SecurityDashboard:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalEvents:
+              type: integer
+            criticalEvents:
+              type: integer
+            activeThreats:
+              type: integer
+            blockedIPs:
+              type: integer
+        eventsByType:
+          type: object
+        eventsBySeverity:
+          type: object
+        recentEvents:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecurityEvent'
+
+    ComplianceDashboard:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalUsers:
+              type: integer
+            dataExportRequests:
+              type: integer
+            dataDeletionRequests:
+              type: integer
+            overallComplianceScore:
+              type: integer
+        complianceScores:
+          type: object
+          properties:
+            gdpr:
+              type: integer
+            sox:
+              type: integer
+            overall:
+              type: integer
+        upcomingDeadlines:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              dueDate:
+                type: string
+                format: date
+              framework:
+                type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Health
+    description: System health and status endpoints
+  - name: Authentication
+    description: User authentication and session management
+  - name: User Management
+    description: User profile and account management
+  - name: Documents
+    description: Document upload and management
+  - name: Constraints
+    description: Constraint definition and management
+  - name: Analysis
+    description: Financial analysis and processing
+  - name: AI
+    description: AI-powered insights and analysis
+  - name: Privacy & GDPR
+    description: Data privacy and GDPR compliance
+  - name: Security
+    description: Security monitoring and management
+  - name: Compliance
+    description: Compliance reporting and management
