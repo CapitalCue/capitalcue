@@ -6,6 +6,7 @@ import PricingPlans from '../components/pricing/PricingPlans';
 import { Shield, Clock, Users, Zap } from 'lucide-react';
 
 // Fixed Layout import issue - using Header and Footer directly
+// Force fresh deployment - all issues resolved
 
 const benefits = [
   {
