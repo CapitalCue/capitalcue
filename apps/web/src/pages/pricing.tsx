@@ -5,6 +5,8 @@ import Footer from '../components/layout/Footer';
 import PricingPlans from '../components/pricing/PricingPlans';
 import { Shield, Clock, Users, Zap } from 'lucide-react';
 
+// Fixed Layout import issue - using Header and Footer directly
+
 const benefits = [
   {
     icon: <Shield className="w-8 h-8 text-blue-600" />,
