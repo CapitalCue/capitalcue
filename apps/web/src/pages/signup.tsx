@@ -38,7 +38,7 @@ const SignupPage: React.FC = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState<Partial<SignupForm>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof SignupForm, string>>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>('starter');
 
@@ -49,7 +49,7 @@ const SignupPage: React.FC = () => {
   }, [plan]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<SignupForm> = {};
+    const newErrors: Partial<Record<keyof SignupForm, string>> = {};
 
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required';

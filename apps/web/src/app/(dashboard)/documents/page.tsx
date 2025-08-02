@@ -40,7 +40,7 @@ export default function DocumentsPage() {
   const [dragActive, setDragActive] = useState(false)
   
   const searchParams = useSearchParams()
-  const showUpload = searchParams.get('action') === 'upload'
+  const showUpload = searchParams?.get('action') === 'upload'
 
   const fetchDocuments = useCallback(async () => {
     try {

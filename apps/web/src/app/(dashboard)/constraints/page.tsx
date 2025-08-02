@@ -60,7 +60,7 @@ export default function ConstraintsPage() {
   const [editingConstraint, setEditingConstraint] = useState<Constraint | null>(null)
   
   const searchParams = useSearchParams()
-  const showCreate = searchParams.get('action') === 'create'
+  const showCreate = searchParams?.get('action') === 'create'
 
   const [newConstraint, setNewConstraint] = useState({
     name: '',

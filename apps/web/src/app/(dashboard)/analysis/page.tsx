@@ -72,7 +72,7 @@ export default function AnalysisPage() {
   const [constraints, setConstraints] = useState<any[]>([])
   
   const searchParams = useSearchParams()
-  const showRun = searchParams.get('action') === 'run'
+  const showRun = searchParams?.get('action') === 'run'
 
   const [newAnalysis, setNewAnalysis] = useState({
     name: '',

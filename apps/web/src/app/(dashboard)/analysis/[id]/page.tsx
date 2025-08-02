@@ -104,7 +104,7 @@ export default function AnalysisDetailsPage() {
       const response = await apiClient.get<{
         analysis: AnalysisDetails
         stats: AnalysisStats
-      }>(`/analysis/${params.id}`)
+      }>(`/analysis/${params?.id}`)
       
       if (response.success && response.data) {
         setAnalysis(response.data.analysis)
@@ -210,7 +210,7 @@ export default function AnalysisDetailsPage() {
   useEffect(() => {
     fetchAnalysis()
     fetchAIStatus()
-  }, [params.id])
+  }, [params?.id])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
