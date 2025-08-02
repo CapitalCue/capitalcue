@@ -1,6 +1,7 @@
 import React from 'react';
 import Head from 'next/head';
-import Layout from '../components/layout/Layout';
+import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
 import PricingPlans from '../components/pricing/PricingPlans';
 import { Shield, Clock, Users, Zap } from 'lucide-react';
 
@@ -64,7 +65,8 @@ const PricingPage: React.FC = () => {
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
 
-      <Layout>
+      <Header />
+      <div className="min-h-screen bg-gray-50">
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -261,7 +263,8 @@ const PricingPage: React.FC = () => {
             </p>
           </div>
         </div>
-      </Layout>
+      </div>
+      <Footer />
     </>
   );
 };
