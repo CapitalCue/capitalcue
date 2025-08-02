@@ -1,0 +1,19 @@
+[build]
+  publish = "apps/web/.next"
+  command = "npm install && cd apps/web && npm run build"
+  base = "."
+
+[build.environment]
+  NODE_VERSION = "18"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+  [plugins.inputs]
+    buildCommand = "cd apps/web && npm run build"
+    publishDir = "apps/web/.next"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
