@@ -1,10 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@financial-analyzer/shared', '@financial-analyzer/ui'],
-  output: 'standalone',
-  experimental: {
-    outputFileTracingRoot: process.cwd(),
-  },
   env: {
     API_URL: process.env.API_URL || 'http://localhost:3001',
   },
