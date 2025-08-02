@@ -1,24 +1,12 @@
+'use client'
+
 import React from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import { TrendingUp, ArrowRight, Check, Star, Users, Shield, Zap } from 'lucide-react';
 
-const HomePage: React.FC = () => {
+export default function HomePage() {
   return (
     <>
-      <Head>
-        <title>CapitalCue - AI-Powered Financial Analysis Platform</title>
-        <meta 
-          name="description" 
-          content="Transform your investment decisions with CapitalCue's AI-powered financial analysis. Built for VCs, investors, and financial professionals." 
-        />
-        <meta name="keywords" content="financial analysis, VC software, investment tools, AI finance, constraint analysis" />
-        <meta property="og:title" content="CapitalCue - AI-Powered Financial Analysis Platform" />
-        <meta property="og:description" content="Transform your investment decisions with AI-powered financial analysis." />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-      </Head>
-
       {/* Navigation */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -398,6 +386,4 @@ const HomePage: React.FC = () => {
       </footer>
     </>
   );
-};
-
-export default HomePage;
+}
