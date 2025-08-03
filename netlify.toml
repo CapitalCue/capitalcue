@@ -1,6 +1,6 @@
 [build]
   publish = "apps/web/out"
-  command = "cd apps/web && npm install --legacy-peer-deps --only=prod && npm run build"
+  command = "cd apps/web && npm install --legacy-peer-deps && npm run build"
   base = "."
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':!mcp-servers' ':!apps/api' ':!*.py' ':!requirements.txt'"
 
