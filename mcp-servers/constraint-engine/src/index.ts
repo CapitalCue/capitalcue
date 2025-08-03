@@ -57,8 +57,13 @@ app.use('/api/constraints', constraintRoutes);
 app.use(errorHandler);
 
 // Start server
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info(`Constraint Engine MCP Server running on port ${port}`);
+});
+
+server.on('error', (err: any) => {
+  logger.error('Server error:', err);
+  process.exit(1);
 });
 
 export { logger };

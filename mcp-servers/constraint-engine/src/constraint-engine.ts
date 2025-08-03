@@ -1,8 +1,37 @@
-import { 
-  Constraint, 
-  FinancialMetric, 
-  ConstraintViolation 
-} from '@financial-analyzer/shared';
+// Define types locally since shared package doesn't exist
+export interface Constraint {
+  id: string;
+  name: string;
+  description?: string;
+  metric: string;
+  operator: '<' | '>' | '=' | '<=' | '>=' | '!=';
+  value: number;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  userId?: string;
+}
+
+export interface FinancialMetric {
+  name: string;
+  value: number;
+  unit: string;
+  period: string;
+  source: string;
+  confidence: number;
+}
+
+export interface ConstraintViolation {
+  constraintId: string;
+  metric: string;
+  actualValue: number;
+  expectedValue: number;
+  operator: string;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+}
 
 export interface EvaluationRequest {
   constraints: Constraint[];

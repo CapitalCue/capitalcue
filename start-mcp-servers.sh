@@ -19,7 +19,7 @@ cd ../..
 
 # Start Constraint Engine (Port 8002)
 echo "Starting Constraint Engine on port 8002..."
-cd mcp-servers/constraint-engine
+cd mcp-servers/constraint-engine-simple
 npm start &
 CONSTRAINT_PID=$!
 cd ../..
