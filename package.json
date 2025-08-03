@@ -7,6 +7,10 @@
     "apps/web"
   ],
   "scripts": {
+    "start": "node proxy-server.js",
+    "railway:start": "node proxy-server.js",
+    "railway:build": "npm run build:services",
+    "build:services": "cd mcp-servers/constraint-engine && npm ci && npm run build && cd ../alert-manager && npm ci && npm run build && cd ../ai-analyzer && npm ci && npm run build",
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
     "test": "npm run test --workspace=apps/web",
@@ -35,6 +39,11 @@
     "k8s:delete": "kubectl delete -f k8s/",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

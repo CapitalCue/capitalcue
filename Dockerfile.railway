@@ -1,0 +1,74 @@
+# Multi-service Railway Dockerfile for CapitalCue
+FROM node:18-alpine AS builder
+
+# Install Python for document parser
+RUN apk add --no-cache python3 py3-pip python3-dev build-base
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY mcp-servers/constraint-engine/package*.json ./constraint-engine/
+COPY mcp-servers/alert-manager/package*.json ./alert-manager/
+COPY mcp-servers/ai-analyzer/package*.json ./ai-analyzer/
+
+# Install TypeScript dependencies
+RUN cd constraint-engine && npm ci --only=production
+RUN cd alert-manager && npm ci --only=production  
+RUN cd ai-analyzer && npm ci --only=production
+
+# Copy and build TypeScript services
+COPY mcp-servers/constraint-engine/src ./constraint-engine/src/
+COPY mcp-servers/constraint-engine/tsconfig.json ./constraint-engine/
+COPY mcp-servers/alert-manager/src ./alert-manager/src/
+COPY mcp-servers/alert-manager/tsconfig.json ./alert-manager/
+COPY mcp-servers/ai-analyzer/src ./ai-analyzer/src/
+COPY mcp-servers/ai-analyzer/tsconfig.json ./ai-analyzer/
+
+RUN cd constraint-engine && npm run build
+RUN cd alert-manager && npm run build
+RUN cd ai-analyzer && npm run build
+
+# Copy Python service
+COPY mcp-servers/document-parser ./document-parser/
+RUN cd document-parser && pip install -r requirements.txt
+
+# Production stage
+FROM node:18-alpine
+
+# Install Python runtime
+RUN apk add --no-cache python3 py3-pip curl
+
+WORKDIR /app
+
+# Copy built applications
+COPY --from=builder /app/constraint-engine/dist ./constraint-engine/dist/
+COPY --from=builder /app/constraint-engine/node_modules ./constraint-engine/node_modules/
+COPY --from=builder /app/constraint-engine/package.json ./constraint-engine/
+
+COPY --from=builder /app/alert-manager/dist ./alert-manager/dist/
+COPY --from=builder /app/alert-manager/node_modules ./alert-manager/node_modules/
+COPY --from=builder /app/alert-manager/package.json ./alert-manager/
+
+COPY --from=builder /app/ai-analyzer/dist ./ai-analyzer/dist/
+COPY --from=builder /app/ai-analyzer/node_modules ./ai-analyzer/node_modules/
+COPY --from=builder /app/ai-analyzer/package.json ./ai-analyzer/
+
+COPY --from=builder /app/document-parser ./document-parser/
+
+# Copy startup script
+COPY start-services.sh ./
+RUN chmod +x start-services.sh
+
+# Create uploads directory
+RUN mkdir -p uploads && chmod 755 uploads
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Start all services
+CMD ["./start-services.sh"]
