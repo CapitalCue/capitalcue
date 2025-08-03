@@ -74,41 +74,29 @@ services.push(startService(
 
 // Wait a bit for services to start
 setTimeout(() => {
-  // Use the simple constraint engine server instead
+  // Constraint Engine (Node.js)
   services.push(startService(
     'constraint-engine',
     'node',
-    [path.join(__dirname, 'mcp-servers', 'constraint-engine-simple', 'server.js')],
+    [path.join(__dirname, 'mcp-servers', 'constraint-engine', 'server.js')],
     8002
   ));
 
-  // For now, we'll use a simple mock service for alert-manager and ai-analyzer
-  console.log('⚠️  Alert Manager and AI Analyzer will use mock responses for now');
-  
-  // Create simple mock servers
-  const express = require('express');
-  
-  // Mock Alert Manager
-  const alertApp = express();
-  alertApp.use(require('cors')());
-  alertApp.use(express.json());
-  alertApp.get('/health', (req, res) => res.json({ status: 'healthy', service: 'alert-manager-mock' }));
-  alertApp.get('/api/alerts', (req, res) => res.json({ success: true, data: [], count: 0 }));
-  alertApp.listen(8003, () => console.log('Mock Alert Manager running on port 8003'));
-  
-  // Mock AI Analyzer
-  const aiApp = express();
-  aiApp.use(require('cors')());
-  aiApp.use(express.json());
-  aiApp.get('/health', (req, res) => res.json({ status: 'healthy', service: 'ai-analyzer-mock' }));
-  aiApp.post('/api/analyze', (req, res) => res.json({ 
-    success: true, 
-    data: { 
-      insights: ['Financial analysis completed'], 
-      recommendations: ['Review quarterly performance'] 
-    }
-  }));
-  aiApp.listen(8004, () => console.log('Mock AI Analyzer running on port 8004'));
+  // Alert Manager (Node.js)  
+  services.push(startService(
+    'alert-manager',
+    'node',
+    [path.join(__dirname, 'mcp-servers', 'alert-manager', 'server.js')],
+    8003
+  ));
+
+  // AI Analyzer (Node.js)
+  services.push(startService(
+    'ai-analyzer', 
+    'node',
+    [path.join(__dirname, 'mcp-servers', 'ai-analyzer', 'server.js')],
+    8004
+  ));
 }, 2000);
 
 // Set up proxy routes after services start
