@@ -114,7 +114,7 @@ class DocumentParser:
                 
         except Exception as e:
             logger.error(f"Error parsing PDF: {str(e)}")
-            raise HTTPException(status_code=500, f"PDF parsing failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"PDF parsing failed: {str(e)}")
     
     async def parse_excel(self, file_path: str) -> Dict[str, Any]:
         """Extract data from Excel files"""
@@ -151,7 +151,7 @@ class DocumentParser:
             
         except Exception as e:
             logger.error(f"Error parsing Excel: {str(e)}")
-            raise HTTPException(status_code=500, f"Excel parsing failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Excel parsing failed: {str(e)}")
     
     async def parse_csv(self, file_path: str) -> Dict[str, Any]:
         """Extract data from CSV files"""
@@ -180,7 +180,7 @@ class DocumentParser:
             
         except Exception as e:
             logger.error(f"Error parsing CSV: {str(e)}")
-            raise HTTPException(status_code=500, f"CSV parsing failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"CSV parsing failed: {str(e)}")
     
     def _extract_tables_from_text(self, text: str) -> List[Dict[str, Any]]:
         """Extract table-like structures from text (basic implementation)"""

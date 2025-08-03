@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "ai-analyzer": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "./mcp-servers/ai-analyzer",
+      "env": {
+        "PORT": "8004",
+        "NODE_ENV": "development"
+      }
+    },
+    "constraint-engine": {
+      "command": "node", 
+      "args": ["dist/index.js"],
+      "cwd": "./mcp-servers/constraint-engine",
+      "env": {
+        "PORT": "8002",
+        "NODE_ENV": "development"
+      }
+    },
+    "alert-manager": {
+      "command": "node",
+      "args": ["dist/index.js"], 
+      "cwd": "./mcp-servers/alert-manager",
+      "env": {
+        "PORT": "8003",
+        "NODE_ENV": "development"
+      }
+    },
+    "document-parser": {
+      "command": "python3",
+      "args": ["main.py"],
+      "cwd": "./mcp-servers/document-parser",
+      "env": {
+        "PORT": "8001"
+      }
+    }
+  }
+}
