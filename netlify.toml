@@ -1,17 +1,23 @@
 [build]
-  publish = ".next"
-  command = "npm install --legacy-peer-deps && npm run build"
-  base = "apps/web"
+  publish = "apps/web/out"
+  command = "cd apps/web && npm install --legacy-peer-deps && npm run build"
+  base = "."
 
 [build.environment]
   NODE_VERSION = "24"
   NEXT_TELEMETRY_DISABLED = "1"
   NPM_FLAGS = "--legacy-peer-deps"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
+# Enable SPA mode for React interactivity
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
+
+# Enable gzip compression
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
