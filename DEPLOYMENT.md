@@ -1,6 +1,30 @@
-# Financial Analyzer Deployment Guide
+# CapitalCue Production Deployment Guide
 
-This guide covers deployment options for the Financial Constraint Analysis Platform.
+This guide covers deploying CapitalCue to production using Docker, AWS, and Netlify.
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   Frontend      │    │   Load Balancer  │    │   MCP Services      │
+│   (Netlify)     │◄──►│   (Nginx/ALB)    │◄──►│   (ECS/Docker)      │
+│                 │    │                  │    │                     │
+│ - React/Vite    │    │ - SSL/TLS        │    │ - Document Parser   │
+│ - Tailwind      │    │ - Rate Limiting  │    │ - Constraint Engine │
+│ - TypeScript    │    │ - CORS           │    │ - Alert Manager     │
+└─────────────────┘    └──────────────────┘    │ - AI Analyzer       │
+                                               └─────────────────────┘
+                                                         │
+                                               ┌─────────────────────┐
+                                               │   Database          │
+                                               │   (RDS PostgreSQL)  │
+                                               │                     │
+                                               │ - User Data         │
+                                               │ - Documents         │
+                                               │ - Constraints       │
+                                               │ - Analysis Results  │
+                                               └─────────────────────┘
+```
 
 ## 🚀 Quick Start
 

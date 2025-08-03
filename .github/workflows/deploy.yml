@@ -1,0 +1,152 @@
+name: Deploy CapitalCue
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        # Install frontend dependencies
+        cd apps/frontend
+        npm ci
+        cd ../..
+        
+        # Install MCP server dependencies
+        cd mcp-servers/constraint-engine && npm ci && cd ../..
+        cd mcp-servers/alert-manager && npm ci && cd ../..
+        cd mcp-servers/ai-analyzer && npm ci && cd ../..
+        
+        # Install Python dependencies
+        cd mcp-servers/document-parser
+        pip install -r requirements.txt
+        cd ../..
+
+    - name: Build frontend
+      run: |
+        cd apps/frontend
+        npm run build
+        cd ../..
+
+    - name: Build TypeScript services
+      run: |
+        cd mcp-servers/constraint-engine && npm run build && cd ../..
+        cd mcp-servers/alert-manager && npm run build && cd ../..
+        cd mcp-servers/ai-analyzer && npm run build && cd ../..
+
+    - name: Run tests
+      run: |
+        # Add your test commands here
+        echo "Tests will be added here"
+
+  deploy-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and push Docker images
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: capitalcue
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build and push document parser
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY-document-parser:$IMAGE_TAG ./mcp-servers/document-parser
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY-document-parser:$IMAGE_TAG
+        
+        # Build and push constraint engine
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY-constraint-engine:$IMAGE_TAG ./mcp-servers/constraint-engine
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY-constraint-engine:$IMAGE_TAG
+        
+        # Build and push alert manager
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY-alert-manager:$IMAGE_TAG ./mcp-servers/alert-manager
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY-alert-manager:$IMAGE_TAG
+        
+        # Build and push AI analyzer
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY-ai-analyzer:$IMAGE_TAG ./mcp-servers/ai-analyzer
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY-ai-analyzer:$IMAGE_TAG
+
+    - name: Deploy to ECS
+      run: |
+        # Update ECS service with new images
+        aws ecs update-service --cluster capitalcue-cluster --service document-parser --force-new-deployment
+        aws ecs update-service --cluster capitalcue-cluster --service constraint-engine --force-new-deployment
+        aws ecs update-service --cluster capitalcue-cluster --service alert-manager --force-new-deployment
+        aws ecs update-service --cluster capitalcue-cluster --service ai-analyzer --force-new-deployment
+
+  deploy-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        cd apps/frontend
+        npm ci
+
+    - name: Build frontend
+      env:
+        VITE_DOCUMENT_API: https://api.capitalcue.com/documents
+        VITE_CONSTRAINT_API: https://api.capitalcue.com/constraints
+        VITE_ALERTS_API: https://api.capitalcue.com/alerts
+        VITE_AI_API: https://api.capitalcue.com/ai
+      run: |
+        cd apps/frontend
+        npm run build
+
+    - name: Deploy to Netlify
+      uses: nwtgck/actions-netlify@v2.0
+      with:
+        publish-dir: './apps/frontend/dist'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Deploy from GitHub Actions"
+        enable-pull-request-comment: false
+        enable-commit-comment: true
+        overwrites-pull-request-comment: true
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
