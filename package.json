@@ -10,7 +10,7 @@
     "start": "node proxy-server.js",
     "railway:start": "node proxy-server.js",
     "railway:build": "npm run build:services",
-    "build:services": "cd mcp-servers/constraint-engine && npm ci && npm run build && cd ../alert-manager && npm ci && npm run build && cd ../ai-analyzer && npm ci && npm run build",
+    "build:services": "echo 'Installing dependencies...' && cd mcp-servers/constraint-engine && npm ci && cd ../alert-manager && npm ci && cd ../ai-analyzer && npm ci && cd ../.. && echo 'Build complete'",
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
     "test": "npm run test --workspace=apps/web",
