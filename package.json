@@ -4,16 +4,14 @@
   "description": "CapitalCue - Financial Analysis Platform for VCs and Stock Investors",
   "private": true,
   "workspaces": [
-    "apps/*",
-    "packages/*",
-    "mcp-servers/*"
+    "apps/web"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/document-processor\"",
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces",
-    "type-check": "npm run type-check --workspaces",
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "test": "npm run test --workspace=apps/web",
+    "lint": "npm run lint --workspace=apps/web",
+    "type-check": "npm run type-check --workspace=apps/web",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules mcp-servers/*/node_modules",
     "mcp:start": "concurrently \"npm start --workspace=mcp-servers/document-parser\" \"npm start --workspace=mcp-servers/constraint-engine\" \"npm start --workspace=mcp-servers/alert-manager\" \"npm start --workspace=mcp-servers/ai-analyzer\"",
     "db:migrate": "npm run migrate --workspace=apps/api",

@@ -1,12 +1,16 @@
 [build]
   publish = "apps/web/out"
-  command = "cd apps/web && npm install --legacy-peer-deps && npm run build"
+  command = "cd apps/web && npm install --legacy-peer-deps --only=prod && npm run build"
   base = "."
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':!mcp-servers' ':!apps/api' ':!*.py' ':!requirements.txt'"
 
 [build.environment]
   NODE_VERSION = "24"
   NEXT_TELEMETRY_DISABLED = "1"
   NPM_FLAGS = "--legacy-peer-deps"
+  # Skip Python installation
+  PYTHONDONTWRITEBYTECODE = "1"
+  PYTHON_VERSION = ""
 
 # Enable SPA mode for React interactivity
 [[redirects]]
